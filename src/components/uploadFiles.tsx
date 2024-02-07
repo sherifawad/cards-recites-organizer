@@ -9,10 +9,11 @@ import { useState } from "react";
 import { api } from "../../convex/_generated/api";
 
 interface UploadFilesProps {
-	saveAfterUpload: (uploaded: UploadFileResponse[]) => Promise<void>;
+	onUploadComplete: (uploaded: UploadFileResponse[]) => Promise<void>;
+	onError: (error: unknown) => Promise<void>;
 }
 
-function UploadFiles({ saveAfterUpload }: UploadFilesProps) {
+function UploadFiles({ onError, onUploadComplete }: UploadFilesProps) {
 	const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 	const [images, setImages] = useState<string[]>([]);
 
@@ -51,7 +52,7 @@ function UploadFiles({ saveAfterUpload }: UploadFilesProps) {
 					onUploadComplete={saveFiles}
 					onUploadError={(error: unknown) => {
 						// Do something with the error.
-						alert(`ERROR! ${error}`);
+						onError(error);
 					}}
 				/>
 			)}
