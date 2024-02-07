@@ -8,7 +8,7 @@ export default defineSchema({
 		profileImage: v.string(),
 	}),
 	docs: defineTable({
-		imageUrl: v.string(),
+		imagesUrls: v.array(v.string()),
 		note: v.string(),
 		tags: v.array(v.string()),
 		date: v.string(),
