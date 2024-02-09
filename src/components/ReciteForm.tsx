@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { FieldError, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -15,29 +15,37 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import DatePicker from "./DatePicker";
+import MemberShipInput from "./memberShip-input";
+import { Label } from "./ui/label";
+import { Switch } from "./ui/switch";
 import UploadFiles from "./uploadFiles";
+
+export const formatErrors = (errors: Record<string, FieldError>) =>
+	Object.keys(errors).map(key => ({
+		key,
+		message: errors[key].message,
+	}));
 
 const formSchema = z
 	.object({
 		note: z.string().min(2),
-		images: z.array(z.string()).nonempty(),
-		tags: z.array(z.string()).nonempty(),
+		images: z.array(z.string()),
+		tags: z.array(z.string()),
 		date: z.date(),
-		code: z.number().optional(),
-		year: z.number().optional(),
+		memberShip: z.boolean().optional(),
+		code: z.string().min(4).optional(),
 	})
 	.refine(
 		data => {
-			if (data.code && !data.year) {
-				return false;
+			if (data.memberShip) {
+				return data.code ? true : false;
 			}
-			if (data.year && !data.code) {
-				return false;
-			}
+			return true;
 		},
 		{
-			message: "year and code must both exist",
-			path: ["year", "code"],
+			message: "Switch is On and MemberShip Code Not Exist",
+			path: ["code"],
 		},
 	);
 
@@ -45,6 +53,7 @@ function ReciteForm() {
 	// 1. Define your form.
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
+
 		defaultValues: {
 			images: [],
 			note: "",
@@ -52,12 +61,12 @@ function ReciteForm() {
 			date: new Date(),
 		},
 	});
-
+	const switchState = form.watch("memberShip");
 	// 2. Define a submit handler.
 	function onSubmit(values: z.infer<typeof formSchema>) {
 		// Do something with the form values.
 		// ✅ This will be type-safe and validated.
-		console.log(values);
+		console.log("🚀 ~ onSubmit ~ values:", values);
 	}
 
 	return (
@@ -68,23 +77,78 @@ function ReciteForm() {
 					name='note'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Username</FormLabel>
+							<FormLabel>Note</FormLabel>
 							<FormControl>
 								<Input placeholder='shadcn' {...field} />
 							</FormControl>
-							<FormDescription>
-								This is your public display name.
-							</FormDescription>
+							<FormDescription>Add any desired Notes</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
 				<FormField
 					control={form.control}
+					name='date'
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Recite Date</FormLabel>
+							<FormControl>
+								<DatePicker
+									onDateSelect={field.onChange}
+									selectedDate={field.value}
+								/>
+							</FormControl>
+							<FormDescription>Select Data Day</FormDescription>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+
+				<div className='flex flex-row items-center justify-between rounded-lg border p-4'>
+					<div className='space-y-0.5'>
+						<Label className='text-base'>Add MemberShip</Label>
+						<FormField
+							control={form.control}
+							name='code'
+							render={({ field }) => (
+								<FormItem>
+									<FormControl>
+										<MemberShipInput
+											onChange={field.onChange}
+											value={field.value}
+											isDisabled={!switchState}
+										/>
+									</FormControl>
+
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+					</div>
+					<FormField
+						control={form.control}
+						name='memberShip'
+						render={({ field }) => (
+							<FormItem>
+								<FormControl>
+									<Switch
+										checked={field.value}
+										onCheckedChange={field.onChange}
+									/>
+								</FormControl>
+
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+				</div>
+
+				<FormField
+					control={form.control}
 					name='images'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Username</FormLabel>
+							<FormLabel>Recites Images</FormLabel>
 							<FormControl>
 								<UploadFiles
 									onUploadComplete={() => new Promise(() => undefined)}
@@ -92,14 +156,23 @@ function ReciteForm() {
 								/>
 							</FormControl>
 							<FormDescription>
-								This is your public display name.
+								Select a Single or Multiple Images to be uploaded
 							</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
-				<Button type='submit'>Submit</Button>
+				<Button
+					className='disable:bg-mute-500'
+					type='submit'
+					disabled={form.formState.isSubmitting}
+				>
+					Submit
+				</Button>
 			</form>
+			<pre>
+				{JSON.stringify(formatErrors(form.formState.errors as any), null, 2)}
+			</pre>
 		</Form>
 	);
 }
